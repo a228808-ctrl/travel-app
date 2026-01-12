@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅遊分帳 - Firebase 雲端同步版</title>
+    
+    <!-- 引入 Firebase SDK (使用 v10 Compatibility Mode 方便單頁開發) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --primary: #4f46e5; --secondary: #ec4899; --bg: #f1f5f9; --card: #ffffff; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { max-width: 550px; width: 100%; }
+        .card { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none; }
+        h1, h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        
+        input, select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        .btn-calc { background: var(--secondary); margin-top: 20px; }
+        
+        .rate-bar { background: #e2e8f0; padding: 10px; border-radius: 8px; font-size: 12px; text-align: center; margin-bottom: 15px; color: #475569; }
+        .entry-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .remark-tag { background: #f1f5f9; color: #64748b; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+        .twd-text { font-weight: bold; color: var(--primary); }
+        .share-link { background: #fffbeb; border: 1px solid #fde68a; padding: 10px; border-radius: 8px; font-size: 12px; word-break: break-all; margin-bottom: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 頁面 1: 初始設定 -->
+    <div id="setupPage" class="card">
+        <h1>🌍 建立新旅遊</h1>
+        <input type="text" id="tripNameInput" placeholder="旅遊名稱 (如: 2024 東京之旅)">
+        <input type="text" id="membersInput" placeholder="成員姓名 (請用逗號隔開, 如: A,B,C)">
+        <button onclick="createNewTrip()">建立旅遊並同步雲端</button>
+    </div>
+
+    <!-- 頁面 2: 主介面 -->
+    <div id="mainPage" class="hidden">
+        <h2 id="displayTripName">載入中...</h2>
+        <div class="share-link">
+            🔗 傳送此連結給朋友即可同步使用：<br>
+            <strong id="currentLink"></strong>
+        </div>
+        
+        <div id="rateDisplay" class="rate-bar">更新匯率中...</div>
+
+        <div class="card">
+            <label>付款人</label>
+            <select id="personSelect"></select>
+            <input type="text" id="remarkInput" placeholder="消費項目 (如: 居酒屋)">
+            <div style="display:flex; gap:8px;">
+                <input type="number" id="amountInput" placeholder="金額" style="flex:2">
+                <select id="currencyInput" style="flex:1">
+                    <option value="TWD">TWD</option>
+                    <option value="JPY">JPY</option>
+                    <option value="EUR">EUR</option>
+                </select>
+            </div>
+            <button onclick="addEntry()">＋ 新增消費</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 消費紀錄 (同步中)</h3>
+            <div id="entryList" style="text-align:center; color:#94a3b8;">尚未有資料</div>
+            <button class="btn-calc" onclick="calculate()">💰 結算分帳結果</button>
+        </div>
+
+        <div id="resultCard" class="card hidden">
+            <h3>🏁 結算建議</h3>
+            <div id="summaryArea" style="text-align:center; margin-bottom:15px; padding-bottom:15px; border-bottom:1px dashed #eee;"></div>
+            <div id="resultList"></div>
+            <button onclick="location.href=location.pathname" style="background:#64748b; margin-top:10px;">建立新行程</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. Firebase 配置 (請替換成你的配置) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDeiGsT67EBlGCHAFmznJHGT28gsc_WU1g",
+        authDomain: "grandpasplit.firebaseapp.com",
+        databaseURL: "ttps://grandpasplit-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "grandpasplitD",
+        storageBucket: "grandpasplit.firebasestorage.app",
+        messagingSenderId: "388673972284",
+        appId: "1:388673972284:web:dad6dbe7f93a46b6d8bb39"
+    };
+
+    // 初始化 Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- 2. 全域變數 ---
+    let tripId = new URLSearchParams(window.location.search).get('tripId');
+    let members = [];
+    let exchangeRates = { JPY: 0.21, EUR: 34.5, TWD: 1 };
+
+    // --- 3. 初始邏輯 ---
+    if (tripId) {
+        startRealtimeSync();
+    }
+
+    // 建立新行程
+    function createNewTrip() {
+        const name = document.getElementById('tripNameInput').value.trim();
+        const membersStr = document.getElementById('membersInput').value.trim();
+        if (!name || !membersStr) return alert("請填寫名稱與成員");
+
+        const memberList = membersStr.split(',').map(s => s.trim()).filter(s => s);
+        const newTripRef = db.ref('trips').push(); // 產生唯一 ID
+        
+        newTripRef.set({
+            name: name,
+            members: memberList,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+            window.location.search = `?tripId=${newTripRef.key}`;
+        });
+    }
+
+    // 即時同步監聽
+    function startRealtimeSync() {
+        document.getElementById('setupPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+        document.getElementById('currentLink').innerText = window.location.href;
+
+        // 取得行程資訊
+        db.ref(`trips/${tripId}`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return alert("找不到此行程");
+            
+            document.getElementById('displayTripName').innerText = "📍 " + data.name;
+            members = data.members;
+            
+            // 更新下拉選單
+            const select = document.getElementById('personSelect');
+            select.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            // 渲染消費列表
+            renderEntries(data.entries);
+        });
+
+        fetchRates();
+    }
+
+    // 新增一筆消費
+    function addEntry() {
+        const name = document.getElementById('personSelect').value;
+        const remark = document.getElementById('remarkInput').value.trim() || "未命名支出";
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const currency = document.getElementById('currencyInput').value;
+
+        if (!amount || amount <= 0) return alert("請輸入有效金額");
+
+        const twd_amount = amount * exchangeRates[currency];
+
+        db.ref(`trips/${tripId}/entries`).push({
+            name, remark, amount, currency, twd_amount,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        document.getElementById('amountInput').value = "";
+        document.getElementById('remarkInput').value = "";
+    }
+
+    // 渲染清單
+    function renderEntries(entriesObj) {
+        const container = document.getElementById('entryList');
+        if (!entriesObj) {
+            container.innerHTML = "尚未有任何紀錄";
+            return;
+        }
+
+        const entries = Object.values(entriesObj);
+        container.innerHTML = entries.map(e => `
+            <div class="entry-item">
+                <div>
+                    <strong>${e.name}</strong> <span class="remark-tag">${e.remark}</span><br>
+                    <small style="color:#94a3b8">${e.amount.toLocaleString()} ${e.currency}</small>
+                </div>
+                <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()} TWD</div>
+            </div>
+        `).reverse().join('');
+    }
+
+    // 結算邏輯
+    async function calculate() {
+        const snapshot = await db.ref(`trips/${tripId}/entries`).once('value');
+        const entriesObj = snapshot.val();
+        if (!entriesObj) return alert("還沒有任何消費紀錄！");
+
+        const entries = Object.values(entriesObj);
+        let personTotals = {};
+        members.forEach(m => personTotals[m] = 0);
+        entries.forEach(e => personTotals[e.name] += e.twd_amount);
+
+        const totalTWD = Object.values(personTotals).reduce((a, b) => a + b, 0);
+        const avgTWD = totalTWD / members.length;
+
+        let balances = members.map(m => ({ name: m, balance: personTotals[m] - avgTWD }));
+        let creditors = balances.filter(b => b.balance > 0).sort((a, b) => b.balance - a.balance);
+        let debtors = balances.filter(b => b.balance < 0).sort((a, b) => a.balance - b.balance);
+
+        document.getElementById('summaryArea').innerHTML = `
+            總支出: $${Math.round(totalTWD).toLocaleString()} | 每人平分: <b>$${Math.round(avgTWD).toLocaleString()}</b>
+        `;
+
+        const resultList = document.getElementById('resultList');
+        resultList.innerHTML = '';
+
+        let i = 0, j = 0;
+        while (i < debtors.length && j < creditors.length) {
+            let pay = Math.min(Math.abs(debtors[i].balance), creditors[j].balance);
+            if (pay > 0.5) {
+                const div = document.createElement('div');
+                div.style.padding = "10px";
+                div.style.borderBottom = "1px solid #f1f5f9";
+                div.innerHTML = `💸 <b>${debtors[i].name}</b> 應支付給 <b>${creditors[j].name}</b> <span style="color:var(--secondary)">$${Math.round(pay).toLocaleString()}</span> TWD`;
+                resultList.appendChild(div);
+            }
+            debtors[i].balance += pay;
+            creditors[j].balance -= pay;
+            if (Math.abs(debtors[i].balance) < 1) i++;
+            if (Math.abs(creditors[j].balance) < 1) j++;
+        }
+
+        document.getElementById('resultCard').classList.remove('hidden');
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function fetchRates() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/TWD');
+            const data = await res.json();
+            exchangeRates.JPY = 1 / data.rates.JPY;
+            exchangeRates.EUR = 1 / data.rates.EUR;
+            document.getElementById('rateDisplay').innerText = `即時匯率: 1 JPY ≈ ${exchangeRates.JPY.toFixed(4)} TWD | 1 EUR ≈ ${exchangeRates.EUR.toFixed(2)} TWD`;
+        } catch (e) {
+            document.getElementById('rateDisplay').innerText = "使用預設離線匯率";
+        }
+    }
+</script>
+
+</body>
+</html>
