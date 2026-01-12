@@ -13,6 +13,7 @@
             --adventure-green: #2e7d32; 
             --adventure-blue: #0288d1; 
             --adventure-gold: #fbc02d;
+            --adventure-red: #d32f2f;
             --bg-light: #f0f4f8; 
             --card-bg: #ffffff;
             --text-main: #37474f;
@@ -22,9 +23,8 @@
         body { 
             font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; 
             background: var(--bg-light); 
-            background-image: 
-                radial-gradient(#d1d9e6 1px, transparent 1px);
-            background-size: 20px 20px; /* 像地圖網格的背景 */
+            background-image: radial-gradient(#d1d9e6 1px, transparent 1px);
+            background-size: 20px 20px;
             color: var(--text-main);
             margin: 0; padding: 15px; 
             display: flex; justify-content: center; 
@@ -33,172 +33,99 @@
 
         .container { max-width: 500px; width: 100%; }
         
-        /* 探險風格卡片 */
         .card { 
             background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 20px; 
+            padding: 25px; border-radius: 20px; 
             box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            margin-bottom: 20px; 
-            border-bottom: 4px solid #e0e0e0;
+            margin-bottom: 20px; border-bottom: 4px solid #e0e0e0;
             position: relative;
         }
 
         .hidden { display: none; }
         
-        h1, h2 { 
-            text-align: center; 
-            color: var(--adventure-green); 
-            margin-top: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
+        h1, h2 { text-align: center; color: var(--adventure-green); margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
-        label {
-            font-weight: bold;
-            font-size: 14px;
-            color: var(--adventure-green);
-            display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-        }
+        label { font-weight: bold; font-size: 14px; color: var(--adventure-green); display: block; margin-top: 15px; margin-bottom: 5px; }
 
         input, select, button { 
-            width: 100%; padding: 12px; margin-top: 8px; 
-            border-radius: 12px; border: 2px solid #e1e8ed; 
-            box-sizing: border-box; font-size: 16px; 
-            background: #fafafa;
-            color: var(--text-main);
-            transition: 0.3s;
+            width: 100%; padding: 12px; margin-top: 8px; border-radius: 12px; border: 2px solid #e1e8ed; 
+            box-sizing: border-box; font-size: 16px; background: #fafafa; color: var(--text-main); transition: 0.3s;
         }
 
         input:focus { outline: none; border-color: var(--adventure-blue); background: #fff; }
 
-        button { 
-            background: var(--adventure-blue); 
-            color: white; border: none; font-weight: bold; cursor: pointer; 
-            margin-top: 20px;
-            box-shadow: 0 4px 0 #01579b;
-        }
+        button { background: var(--adventure-blue); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 0 #01579b; }
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #01579b; }
         button:active { transform: translateY(2px); box-shadow: 0 0 0; }
 
         .btn-calc { background: var(--adventure-green); box-shadow: 0 4px 0 #1b5e20; }
-        .btn-calc:hover { box-shadow: 0 6px 0 #1b5e20; }
-
-        .rate-bar { 
-            background: #fff9c4; 
-            padding: 10px; border-radius: 12px; font-size: 13px; 
-            text-align: center; margin-bottom: 20px; color: #f57f17;
-            border: 1px solid #fff176;
-            font-weight: bold;
+        
+        /* 刪除按鈕樣式 */
+        .btn-delete {
+            width: auto; padding: 5px 10px; margin-top: 0; background: transparent;
+            color: var(--text-light); border: 1px solid #eee; box-shadow: none;
+            font-size: 12px; margin-left: 10px;
         }
+        .btn-delete:hover { background: #ffebee; color: var(--adventure-red); border-color: #ffcdd2; box-shadow: none; transform: none; }
 
-        /* 冒險紀錄項目 */
+        .rate-bar { background: #fff9c4; padding: 10px; border-radius: 12px; font-size: 13px; text-align: center; margin-bottom: 20px; color: #f57f17; border: 1px solid #fff176; font-weight: bold; }
+
         .entry-item { 
-            background: #fff;
-            margin: 12px 0; padding: 15px; border-radius: 15px;
-            display: flex; justify-content: space-between; align-items: center; 
-            border: 1px solid #eee;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;
         }
         
         .remark-tag { color: var(--text-main); font-weight: bold; }
-        .beneficiary-tag { font-size: 12px; color: var(--adventure-blue); background: #e1f5fe; padding: 2px 8px; border-radius: 6px; margin-top: 5px; display: inline-block; }
+        .beneficiary-tag { font-size: 11px; color: var(--adventure-blue); background: #e1f5fe; padding: 2px 8px; border-radius: 6px; margin-top: 5px; display: inline-block; }
         .twd-text { font-weight: 900; color: var(--adventure-green); font-size: 18px; }
 
-        /* 分攤對象標籤選擇 */
-        .beneficiary-box { 
-            margin-top: 15px; background: #f1f8e9; 
-            padding: 15px; border-radius: 15px; 
-        }
+        .beneficiary-box { margin-top: 15px; background: #f1f8e9; padding: 15px; border-radius: 15px; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .checkbox-item { 
-            display: flex; align-items: center; background: white; 
-            padding: 6px 14px; border-radius: 25px; font-size: 14px; cursor: pointer;
-            transition: 0.2s; border: 2px solid #e0e0e0;
-            color: var(--text-light);
-        }
-        /* 選中後的樣式 */
-        .checkbox-item.active { 
-            background: var(--adventure-green); 
-            color: white; 
-            border-color: var(--adventure-green);
-        }
+        .checkbox-item { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 25px; font-size: 14px; cursor: pointer; border: 2px solid #e0e0e0; color: var(--text-light); }
+        .checkbox-item.active { background: var(--adventure-green); color: white; border-color: var(--adventure-green); }
         .checkbox-item input { display: none; }
 
-        .share-link { 
-            background: white; padding: 12px; border-radius: 12px; 
-            font-size: 12px; word-break: break-all; margin-bottom: 20px; 
-            text-align: center; border: 2px dashed var(--adventure-blue);
-            color: var(--adventure-blue);
-        }
+        .share-link { background: white; padding: 12px; border-radius: 12px; font-size: 12px; word-break: break-all; margin-bottom: 20px; text-align: center; border: 2px dashed var(--adventure-blue); color: var(--adventure-blue); }
         
-        #resultList div {
-            background: #fffde7;
-            margin: 10px 0; padding: 15px; border-radius: 12px;
-            border-left: 5px solid var(--adventure-gold);
-            font-size: 15px;
-        }
+        #resultList div { background: #fffde7; margin: 10px 0; padding: 15px; border-radius: 12px; border-left: 5px solid var(--adventure-gold); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 頁面 1: 建立新旅程 -->
     <div id="setupPage" class="card">
         <h1>🧭 啟程新冒險</h1>
-        <p style="text-align:center; font-size:14px; color:var(--text-light)">準備好你的冒險地圖了嗎？</p>
-        
         <label>目的地 / 旅程名稱</label>
         <input type="text" id="tripNameInput" placeholder="例如：2024 北海道雪祭">
-        
         <label>冒險成員 (用逗號分開)</label>
         <input type="text" id="membersInput" placeholder="小智, 小剛, 小霞">
-        
         <button onclick="createNewTrip()">開啟冒險日誌 🎒</button>
     </div>
 
-    <!-- 頁面 2: 主介面 -->
     <div id="mainPage" class="hidden">
         <h2 id="displayTripName">📍 載入中...</h2>
-        
-        <div class="share-link">
-            🌍 冒險隊號：<br>
-            <strong id="currentLink"></strong>
-        </div>
-        
-        <div id="rateDisplay" class="rate-bar">🧭 正在校準貨幣指南針...</div>
+        <div class="share-link">🌍 冒險隊號：<br><strong id="currentLink"></strong></div>
+        <div id="rateDisplay" class="rate-bar">🧭 指南針校準中...</div>
 
         <div class="card">
             <label>💰 誰先墊錢？</label>
             <select id="personSelect"></select>
-            
             <label>🗺️ 冒險發現了什麼？</label>
-            <input type="text" id="remarkInput" placeholder="例如：路邊的居酒屋、交通費">
-            
+            <input type="text" id="remarkInput" placeholder="例如：路邊的居酒屋">
             <div style="display:flex; gap:10px;">
                 <input type="number" id="amountInput" placeholder="金額" style="flex:2">
-                <select id="currencyInput" style="flex:1">
-                    <option value="TWD">TWD</option>
-                    <option value="JPY">JPY</option>
-                </select>
+                <select id="currencyInput" style="flex:1"><option value="TWD">TWD</option><option value="JPY">JPY</option></select>
             </div>
-
             <div class="beneficiary-box">
-                <label>👥 誰要分攤這筆支出？</label>
+                <label>👥 誰要分攤？</label>
                 <div id="beneficiaryList" class="checkbox-group"></div>
-                <small style="color:var(--text-light); margin-top:8px; display:block;">* 若皆不勾選，則預設全體成員平分</small>
             </div>
-
             <button onclick="addEntry()">＋ 紀錄這筆發現</button>
         </div>
 
         <div class="card">
-            <h3>📜 冒險日誌 (同步中)</h3>
-            <div id="entryList" style="text-align:center; color:var(--text-light);">尚無日誌紀錄...👣</div>
+            <h3>📜 冒險日誌</h3>
+            <div id="entryList">尚無紀錄...👣</div>
             <button class="btn-calc" onclick="calculate()">🏔️ 生成寶藏分配圖</button>
         </div>
 
@@ -252,26 +179,19 @@
             if (!data) return;
             members = data.members;
             document.getElementById('displayTripName').innerText = "🏔️ " + data.name;
-            
             document.getElementById('personSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
-            
-            // 渲染勾選標籤
             document.getElementById('beneficiaryList').innerHTML = members.map(m => `
                 <label class="checkbox-item" id="label-${m}">
                     <input type="checkbox" name="beneficiary" value="${m}" onchange="toggleTag(this, '${m}')"> ${m}
                 </label>
             `).join('');
-
             renderEntries(data.entries);
         });
         fetchRates();
     }
 
-    // UI 輔助：標籤選中效果
     function toggleTag(cb, name) {
-        const label = document.getElementById(`label-${name}`);
-        if (cb.checked) label.classList.add('active');
-        else label.classList.remove('active');
+        document.getElementById(`label-${name}`).classList.toggle('active', cb.checked);
     }
 
     function addEntry() {
@@ -282,8 +202,7 @@
         let beneficiaries = Array.from(document.querySelectorAll('input[name="beneficiary"]:checked')).map(el => el.value);
         if (beneficiaries.length === 0) beneficiaries = [...members];
 
-        if (!amount || amount <= 0) return alert("請輸入正確的金額！");
-
+        if (!amount || amount <= 0) return alert("金額不正確！");
         const twd_amount = amount * exchangeRates[currency];
 
         db.ref(`trips/${tripId}/entries`).push({
@@ -291,7 +210,6 @@
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // 重置
         document.getElementById('amountInput').value = "";
         document.getElementById('remarkInput').value = "";
         document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
@@ -300,27 +218,40 @@
         });
     }
 
+    // 渲染清單（包含刪除功能）
     function renderEntries(entriesObj) {
         const container = document.getElementById('entryList');
         if (!entriesObj) { container.innerHTML = "日誌目前是空白的 👣"; return; }
 
-        const entries = Object.values(entriesObj);
-        container.innerHTML = entries.map(e => `
+        // 使用 Object.entries 同時取得 Key (ID) 與 Value (資料)
+        const entriesArray = Object.entries(entriesObj);
+
+        container.innerHTML = entriesArray.map(([id, e]) => `
             <div class="entry-item">
-                <div>
+                <div style="flex: 1">
                     <span class="remark-tag">${e.remark}</span><br>
                     <small style="color:var(--text-light)">${e.name} 支付了 ${e.amount} ${e.currency}</small><br>
                     <span class="beneficiary-tag">👤 分攤: ${e.beneficiaries.length === members.length ? '全員' : e.beneficiaries.join(', ')}</span>
                 </div>
-                <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()}</div>
+                <div style="text-align: right">
+                    <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()}</div>
+                    <button class="btn-delete" onclick="deleteEntry('${id}')">🗑️ 刪除</button>
+                </div>
             </div>
         `).reverse().join('');
+    }
+
+    // 刪除紀錄函數
+    function deleteEntry(id) {
+        if (confirm("冒險者，確定要抹除這段紀錄嗎？")) {
+            db.ref(`trips/${tripId}/entries/${id}`).remove();
+        }
     }
 
     async function calculate() {
         const snapshot = await db.ref(`trips/${tripId}/entries`).once('value');
         const entriesObj = snapshot.val();
-        if (!entriesObj) return alert("沒有紀錄無法製作寶藏地圖！");
+        if (!entriesObj) return alert("沒有紀錄！");
 
         const entries = Object.values(entriesObj);
         let balances = {};
@@ -331,7 +262,6 @@
             const amount = e.twd_amount;
             const sharers = e.beneficiaries || members;
             const shareAmount = amount / sharers.length;
-
             balances[payer] += amount;
             sharers.forEach(p => { balances[p] -= shareAmount; });
         });
@@ -354,9 +284,7 @@
             const div = document.createElement('div');
             div.innerHTML = `⛺ <b>${debtors[i].name}</b> 應交付給 <b>${creditors[j].name}</b> <br><span style="color:var(--adventure-green); font-size: 20px;">$${Math.round(pay).toLocaleString()}</span> TWD`;
             resultList.appendChild(div);
-
-            debtors[i].amount -= pay;
-            creditors[j].amount -= pay;
+            debtors[i].amount -= pay; creditors[j].amount -= pay;
             if (debtors[i].amount < 1) i++;
             if (creditors[j].amount < 1) j++;
         }
@@ -373,7 +301,7 @@
             exchangeRates.JPY = 1 / data.rates.JPY;
             document.getElementById('rateDisplay').innerText = `🧭 指南針匯率: 1 JPY ≈ ${exchangeRates.JPY.toFixed(4)} TWD`;
         } catch (e) {
-            document.getElementById('rateDisplay').innerText = "正在使用離線預估匯率 (0.21)";
+            document.getElementById('rateDisplay').innerText = "使用預估匯率 (0.21)";
         }
     }
 </script>
