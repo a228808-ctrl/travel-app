@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梗鬼分帳 😈 Gengar Split</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { 
+            --gengar-dark: #311b92; 
+            --gengar-main: #512da8; 
+            --gengar-light: #9575cd;
+            --gengar-eye: #ff1744; 
+            --gengar-tongue: #ff80ab;
+            --bg: #1a0b2e; 
+            --card: #2d1b4d; 
+            --text: #f3e5f5;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; 
+            background: var(--bg); 
+            background-image: radial-gradient(circle at 20% 30%, #311b92 0%, #1a0b2e 100%);
+            color: var(--text);
+            margin: 0; padding: 15px; 
+            display: flex; justify-content: center; 
+            min-height: 100vh;
+        }
+
+        .container { max-width: 500px; width: 100%; }
+        
+        /* 梗鬼風格卡片 */
+        .card { 
+            background: var(--card); 
+            padding: 25px; 
+            border-radius: 24px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(149, 117, 205, 0.2);
+            margin-bottom: 25px; 
+            border: 2px solid var(--gengar-main);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hidden { display: none; }
+        
+        h1, h2 { 
+            text-align: center; 
+            color: var(--text); 
+            text-shadow: 0 0 10px var(--gengar-light);
+            margin-top: 0;
+            letter-spacing: 2px;
+        }
+
+        /* 耿鬼眼睛裝飾 */
+        .gengar-eyes {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+        .eye {
+            width: 40px; height: 20px;
+            background: var(--gengar-eye);
+            border-radius: 50% 50% 0 0;
+            transform: rotate(10deg);
+            box-shadow: 0 0 15px var(--gengar-eye);
+        }
+        .eye.right { transform: rotate(-10deg); }
+
+        input, select, button { 
+            width: 100%; padding: 14px; margin-top: 12px; 
+            border-radius: 15px; border: 2px solid var(--gengar-main); 
+            box-sizing: border-box; font-size: 16px; 
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        input:focus { outline: none; border-color: var(--gengar-eye); background: rgba(255,255,255,0.1); }
+
+        button { 
+            background: linear-gradient(135deg, var(--gengar-main), var(--gengar-dark)); 
+            color: white; border: none; font-weight: bold; cursor: pointer; 
+            transition: 0.3s; margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--gengar-main); }
+        .btn-calc { background: linear-gradient(135deg, var(--gengar-eye), #b71c1c); }
+        
+        .rate-bar { 
+            background: rgba(149, 117, 205, 0.2); 
+            padding: 12px; border-radius: 12px; font-size: 13px; 
+            text-align: center; margin-bottom: 20px; color: var(--gengar-light);
+            border: 1px dashed var(--gengar-main);
+        }
+
+        .entry-item { 
+            background: rgba(255,255,255,0.03);
+            margin: 10px 0; padding: 15px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center; 
+            border-left: 5px solid var(--gengar-main);
+        }
+        
+        .remark-tag { color: var(--gengar-light); font-size: 14px; }
+        .beneficiary-tag { font-size: 12px; color: var(--gengar-tongue); font-style: italic; }
+        .twd-text { font-weight: bold; color: var(--gengar-tongue); font-size: 18px; }
+
+        /* 分攤對象選擇區 */
+        .beneficiary-box { 
+            margin-top: 20px; background: rgba(0,0,0,0.2); 
+            padding: 15px; border-radius: 15px; border: 1px solid var(--gengar-main);
+        }
+        .beneficiary-box label { font-size: 14px; color: var(--gengar-light); display: block; margin-bottom: 10px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .checkbox-item { 
+            display: flex; align-items: center; background: var(--gengar-dark); 
+            padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;
+            transition: 0.2s; border: 1px solid var(--gengar-main);
+        }
+        .checkbox-item:has(input:checked) { background: var(--gengar-eye); border-color: white; }
+        .checkbox-item input { display: none; }
+
+        .share-link { 
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; 
+            font-size: 12px; word-break: break-all; margin-bottom: 20px; 
+            text-align: center; border: 1px solid var(--gengar-main);
+        }
+        
+        #resultList div {
+            background: rgba(255, 23, 68, 0.1);
+            margin: 8px 0; padding: 12px; border-radius: 12px;
+            border: 1px solid rgba(255, 23, 68, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 頁面 1: 初始設定 -->
+    <div id="setupPage" class="card">
+        <div class="gengar-eyes">
+            <div class="eye"></div>
+            <div class="eye right"></div>
+        </div>
+        <h1>梗鬼分帳 😈</h1>
+        <p style="text-align:center; font-size:14px; color:var(--gengar-light)">建立新的幽靈之旅</p>
+        <input type="text" id="tripNameInput" placeholder="旅遊名稱 (如: 東京大胃王之旅)">
+        <input type="text" id="membersInput" placeholder="成員姓名 (用逗號隔開, 如: 小智,小剛,小霞)">
+        <button onclick="createNewTrip()">召喚分帳黑洞 👻</button>
+    </div>
+
+    <!-- 頁面 2: 主介面 -->
+    <div id="mainPage" class="hidden">
+        <h2 id="displayTripName">📍 載入中...</h2>
+        <div class="share-link">
+            🔗 傳送此連結給隊友同步：<br>
+            <strong id="currentLink" style="color:var(--gengar-tongue)"></strong>
+        </div>
+        
+        <div id="rateDisplay" class="rate-bar">正在讀取耿鬼匯率...</div>
+
+        <div class="card">
+            <label style="color:var(--gengar-light)">誰付錢？</label>
+            <select id="personSelect"></select>
+            
+            <input type="text" id="remarkInput" placeholder="消費了什麼？ (如: 噴射火焰拉麵)">
+            
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="amountInput" placeholder="金額" style="flex:2">
+                <select id="currencyInput" style="flex:1">
+                    <option value="TWD">TWD</option>
+                    <option value="JPY">JPY</option>
+                </select>
+            </div>
+
+            <div class="beneficiary-box">
+                <label>誰要分？ (沒勾則預設全員平分 😈)</label>
+                <div id="beneficiaryList" class="checkbox-group"></div>
+            </div>
+
+            <button onclick="addEntry()">＋ 增加這筆支出</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 消費暗號 (同步中)</h3>
+            <div id="entryList" style="text-align:center; color:var(--gengar-light);">目前空空如也...👻</div>
+            <button class="btn-calc" onclick="calculate()">💰 施展分帳魔法</button>
+        </div>
+
+        <div id="resultCard" class="card hidden">
+            <h3>🏁 最終分帳結果</h3>
+            <div id="summaryArea" style="text-align:center; margin-bottom:15px; color:var(--gengar-tongue)"></div>
+            <div id="resultList"></div>
+            <button onclick="location.href=location.pathname" style="background:#444; margin-top:20px;">建立新行程</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Firebase 配置 (請替換回你的配置) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDeiGsT67EBlGCHAFmznJHGT28gsc_WU1g",
+        authDomain: "grandpasplit.firebaseapp.com",
+        databaseURL: "https://grandpasplit-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "grandpasplitD",
+        storageBucket: "grandpasplit.firebasestorage.app",
+        messagingSenderId: "388673972284",
+        appId: "1:388673972284:web:dad6dbe7f93a46b6d8bb39"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let tripId = new URLSearchParams(window.location.search).get('tripId');
+    let members = [];
+    let exchangeRates = { JPY: 0.21, TWD: 1 };
+
+    if (tripId) startRealtimeSync();
+
+    function createNewTrip() {
+        const name = document.getElementById('tripNameInput').value.trim();
+        const membersStr = document.getElementById('membersInput').value.trim();
+        if (!name || !membersStr) return alert("請填寫名稱與成員！");
+        const memberList = membersStr.split(',').map(s => s.trim()).filter(s => s);
+        const newTripRef = db.ref('trips').push();
+        newTripRef.set({ name: name, members: memberList, createdAt: firebase.database.ServerValue.TIMESTAMP })
+        .then(() => { window.location.search = `?tripId=${newTripRef.key}`; });
+    }
+
+    function startRealtimeSync() {
+        document.getElementById('setupPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+        document.getElementById('currentLink').innerText = window.location.href;
+
+        db.ref(`trips/${tripId}`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            members = data.members;
+            document.getElementById('displayTripName').innerText = "😈 " + data.name;
+            
+            document.getElementById('personSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('beneficiaryList').innerHTML = members.map(m => `
+                <label class="checkbox-item">
+                    <input type="checkbox" name="beneficiary" value="${m}"> ${m}
+                </label>
+            `).join('');
+
+            renderEntries(data.entries);
+        });
+        fetchRates();
+    }
+
+    function addEntry() {
+        const payer = document.getElementById('personSelect').value;
+        const remark = document.getElementById('remarkInput').value.trim() || "神祕支出";
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const currency = document.getElementById('currencyInput').value;
+        let beneficiaries = Array.from(document.querySelectorAll('input[name="beneficiary"]:checked')).map(el => el.value);
+        if (beneficiaries.length === 0) beneficiaries = [...members];
+
+        if (!amount || amount <= 0) return alert("輸入正確金額，不然耿鬼會生氣！");
+
+        const twd_amount = amount * exchangeRates[currency];
+
+        db.ref(`trips/${tripId}/entries`).push({
+            name: payer, remark, amount, currency, twd_amount, beneficiaries,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        document.getElementById('amountInput').value = "";
+        document.getElementById('remarkInput').value = "";
+        document.querySelectorAll('input[name="beneficiary"]').forEach(el => el.checked = false);
+    }
+
+    function renderEntries(entriesObj) {
+        const container = document.getElementById('entryList');
+        if (!entriesObj) { container.innerHTML = "尚未有任何紀錄 👻"; return; }
+
+        const entries = Object.values(entriesObj);
+        container.innerHTML = entries.map(e => `
+            <div class="entry-item">
+                <div>
+                    <strong>${e.name}</strong> <span class="remark-tag">${e.remark}</span><br>
+                    <span class="beneficiary-tag">👤 分攤: ${e.beneficiaries.length === members.length ? '全員' : e.beneficiaries.join(', ')}</span>
+                </div>
+                <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()}</div>
+            </div>
+        `).reverse().join('');
+    }
+
+    async function calculate() {
+        const snapshot = await db.ref(`trips/${tripId}/entries`).once('value');
+        const entriesObj = snapshot.val();
+        if (!entriesObj) return alert("還沒有紀錄可以算帳喔！");
+
+        const entries = Object.values(entriesObj);
+        let balances = {};
+        members.forEach(m => balances[m] = 0);
+
+        entries.forEach(e => {
+            const payer = e.name;
+            const amount = e.twd_amount;
+            const sharers = e.beneficiaries || members;
+            const shareAmount = amount / sharers.length;
+
+            balances[payer] += amount;
+            sharers.forEach(person => { balances[person] -= shareAmount; });
+        });
+
+        let creditors = [], debtors = [];
+        for (let name in balances) {
+            if (balances[name] > 0.5) creditors.push({ name, amount: balances[name] });
+            else if (balances[name] < -0.5) debtors.push({ name, amount: Math.abs(balances[name]) });
+        }
+
+        creditors.sort((a, b) => b.amount - a.amount);
+        debtors.sort((a, b) => b.amount - a.amount);
+
+        const resultList = document.getElementById('resultList');
+        resultList.innerHTML = '';
+
+        let i = 0, j = 0;
+        while (i < debtors.length && j < creditors.length) {
+            let pay = Math.min(debtors[i].amount, creditors[j].amount);
+            const div = document.createElement('div');
+            div.innerHTML = `👅 <b>${debtors[i].name}</b> 應給 <b>${creditors[j].name}</b> <span style="color:var(--gengar-tongue); font-weight:bold;">$${Math.round(pay).toLocaleString()}</span> TWD`;
+            resultList.appendChild(div);
+
+            debtors[i].amount -= pay;
+            creditors[j].amount -= pay;
+            if (debtors[i].amount < 1) i++;
+            if (creditors[j].amount < 1) j++;
+        }
+
+        document.getElementById('summaryArea').innerHTML = `已經抓出所有欠債的幽靈了！`;
+        document.getElementById('resultCard').classList.remove('hidden');
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function fetchRates() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/TWD');
+            const data = await res.json();
+            exchangeRates.JPY = 1 / data.rates.JPY;
+            document.getElementById('rateDisplay').innerText = `耿鬼電波匯率: 1 JPY ≈ ${exchangeRates.JPY.toFixed(4)} TWD`;
+        } catch (e) {
+            document.getElementById('rateDisplay').innerText = "使用預設幽靈匯率 (0.21)";
+        }
+    }
+</script>
+
+</body>
+</html>
