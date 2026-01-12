@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>冒險分帳 🧭 Adventure Split</title>
+    <title>冒險分帳 Pro 🧭 Adventure Split</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -43,7 +43,7 @@
 
         .hidden { display: none; }
         
-        h1, h2 { text-align: center; color: var(--adventure-green); margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        h1, h2, h3 { text-align: center; color: var(--adventure-green); margin-top: 0; }
 
         label { font-weight: bold; font-size: 14px; color: var(--adventure-green); display: block; margin-top: 15px; margin-bottom: 5px; }
 
@@ -58,26 +58,26 @@
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #01579b; }
         button:active { transform: translateY(2px); box-shadow: 0 0 0; }
 
+        /* 特殊按鈕 */
         .btn-calc { background: var(--adventure-green); box-shadow: 0 4px 0 #1b5e20; }
+        .btn-update { background: var(--adventure-gold); box-shadow: 0 4px 0 #f57f17; color: #5d4037; }
         
-        /* 刪除按鈕樣式 */
-        .btn-delete {
-            width: auto; padding: 5px 10px; margin-top: 0; background: transparent;
-            color: var(--text-light); border: 1px solid #eee; box-shadow: none;
-            font-size: 12px; margin-left: 10px;
-        }
-        .btn-delete:hover { background: #ffebee; color: var(--adventure-red); border-color: #ffcdd2; box-shadow: none; transform: none; }
+        .action-btns { display: flex; gap: 5px; margin-top: 5px; justify-content: flex-end; }
+        .btn-small { width: auto; padding: 4px 8px; font-size: 11px; margin-top: 0; box-shadow: none; border: 1px solid #ddd; background: white; color: var(--text-light); }
+        .btn-small:hover { background: #eee; transform: none; box-shadow: none; }
+        .btn-del:hover { color: var(--adventure-red); border-color: #ffcdd2; }
+        .btn-edit:hover { color: var(--adventure-blue); border-color: #bbdefb; }
 
         .rate-bar { background: #fff9c4; padding: 10px; border-radius: 12px; font-size: 13px; text-align: center; margin-bottom: 20px; color: #f57f17; border: 1px solid #fff176; font-weight: bold; }
 
         .entry-item { 
             background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px;
-            display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #eee;
         }
         
         .remark-tag { color: var(--text-main); font-weight: bold; }
         .beneficiary-tag { font-size: 11px; color: var(--adventure-blue); background: #e1f5fe; padding: 2px 8px; border-radius: 6px; margin-top: 5px; display: inline-block; }
-        .twd-text { font-weight: 900; color: var(--adventure-green); font-size: 18px; }
+        .twd-text { font-weight: 900; color: var(--adventure-green); font-size: 18px; text-align: right; }
 
         .beneficiary-box { margin-top: 15px; background: #f1f8e9; padding: 15px; border-radius: 15px; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -85,50 +85,69 @@
         .checkbox-item.active { background: var(--adventure-green); color: white; border-color: var(--adventure-green); }
         .checkbox-item input { display: none; }
 
+        /* 履歷日誌樣式 */
+        .log-container { max-height: 200px; overflow-y: auto; font-size: 12px; color: var(--text-light); background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px inset #eee; }
+        .log-item { padding: 5px 0; border-bottom: 1px dashed #ddd; line-height: 1.4; }
+        .log-time { color: #b0bec5; margin-right: 5px; }
+
         .share-link { background: white; padding: 12px; border-radius: 12px; font-size: 12px; word-break: break-all; margin-bottom: 20px; text-align: center; border: 2px dashed var(--adventure-blue); color: var(--adventure-blue); }
-        
-        #resultList div { background: #fffde7; margin: 10px 0; padding: 15px; border-radius: 12px; border-left: 5px solid var(--adventure-gold); }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- 頁面 1: 建立 -->
     <div id="setupPage" class="card">
         <h1>🧭 啟程新冒險</h1>
-        <label>目的地 / 旅程名稱</label>
+        <label>目的地</label>
         <input type="text" id="tripNameInput" placeholder="例如：2024 北海道雪祭">
         <label>冒險成員 (用逗號分開)</label>
         <input type="text" id="membersInput" placeholder="小智, 小剛, 小霞">
         <button onclick="createNewTrip()">開啟冒險日誌 🎒</button>
     </div>
 
+    <!-- 頁面 2: 主介面 -->
     <div id="mainPage" class="hidden">
         <h2 id="displayTripName">📍 載入中...</h2>
         <div class="share-link">🌍 冒險隊號：<br><strong id="currentLink"></strong></div>
         <div id="rateDisplay" class="rate-bar">🧭 指南針校準中...</div>
 
-        <div class="card">
+        <!-- 輸入區 -->
+        <div class="card" id="inputSection">
+            <h3 id="formTitle">🗺️ 新增冒險發現</h3>
             <label>💰 誰先墊錢？</label>
             <select id="personSelect"></select>
-            <label>🗺️ 冒險發現了什麼？</label>
-            <input type="text" id="remarkInput" placeholder="例如：路邊的居酒屋">
+            <label>🔎 項目內容</label>
+            <input type="text" id="remarkInput" placeholder="例如：拉麵、纜車票">
             <div style="display:flex; gap:10px;">
                 <input type="number" id="amountInput" placeholder="金額" style="flex:2">
-                <select id="currencyInput" style="flex:1"><option value="TWD">TWD</option><option value="JPY">JPY</option></select>
+                <select id="currencyInput" style="flex:1">
+                    <option value="TWD">TWD</option>
+                    <option value="JPY">JPY</option>
+                </select>
             </div>
             <div class="beneficiary-box">
-                <label>👥 誰要分攤？</label>
+                <label>👥 分攤成員</label>
                 <div id="beneficiaryList" class="checkbox-group"></div>
             </div>
-            <button onclick="addEntry()">＋ 紀錄這筆發現</button>
+            <button id="submitBtn" onclick="handleEntrySubmit()">＋ 紀錄發現</button>
+            <button id="cancelEditBtn" class="hidden" onclick="resetForm()" style="background:#eee; color:#666; box-shadow:none; margin-top:10px;">取消修改</button>
         </div>
 
+        <!-- 歷史紀錄 (Logs) -->
         <div class="card">
-            <h3>📜 冒險日誌</h3>
+            <h3>📜 冒險足跡 (履歷)</h3>
+            <div id="logList" class="log-container">尚未有變動紀錄...</div>
+        </div>
+
+        <!-- 明細列表 -->
+        <div class="card">
+            <h3>📝 冒險清單</h3>
             <div id="entryList">尚無紀錄...👣</div>
             <button class="btn-calc" onclick="calculate()">🏔️ 生成寶藏分配圖</button>
         </div>
 
+        <!-- 結算結果 -->
         <div id="resultCard" class="card hidden">
             <h3>🏁 最終分帳建議</h3>
             <div id="summaryArea" style="text-align:center; margin-bottom:15px; font-weight:bold;"></div>
@@ -139,7 +158,7 @@
 </div>
 
 <script>
-    // --- Firebase 配置 ---
+    // --- Firebase 配置 (請保持你的配置) ---
     const firebaseConfig = {
         apiKey: "AIzaSyDeiGsT67EBlGCHAFmznJHGT28gsc_WU1g",
         authDomain: "grandpasplit.firebaseapp.com",
@@ -156,6 +175,7 @@
     let tripId = new URLSearchParams(window.location.search).get('tripId');
     let members = [];
     let exchangeRates = { JPY: 0.21, TWD: 1 };
+    let editModeId = null; // 用來追蹤目前是否在編輯模式
 
     if (tripId) startRealtimeSync();
 
@@ -174,18 +194,25 @@
         document.getElementById('mainPage').classList.remove('hidden');
         document.getElementById('currentLink').innerText = window.location.href;
 
+        // 監聽主資料
         db.ref(`trips/${tripId}`).on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
             members = data.members;
             document.getElementById('displayTripName').innerText = "🏔️ " + data.name;
-            document.getElementById('personSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
-            document.getElementById('beneficiaryList').innerHTML = members.map(m => `
-                <label class="checkbox-item" id="label-${m}">
-                    <input type="checkbox" name="beneficiary" value="${m}" onchange="toggleTag(this, '${m}')"> ${m}
-                </label>
-            `).join('');
+            
+            // 初始化選單與標籤 (僅在第一次或成員變動時)
+            const pSelect = document.getElementById('personSelect');
+            if(pSelect.options.length === 0) {
+                pSelect.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
+                document.getElementById('beneficiaryList').innerHTML = members.map(m => `
+                    <label class="checkbox-item" id="label-${m}">
+                        <input type="checkbox" name="beneficiary" value="${m}" onchange="toggleTag(this, '${m}')"> ${m}
+                    </label>
+                `).join('');
+            }
             renderEntries(data.entries);
+            renderLogs(data.logs);
         });
         fetchRates();
     }
@@ -194,7 +221,8 @@
         document.getElementById(`label-${name}`).classList.toggle('active', cb.checked);
     }
 
-    function addEntry() {
+    // 新增或更新資料的核心邏輯
+    function handleEntrySubmit() {
         const payer = document.getElementById('personSelect').value;
         const remark = document.getElementById('remarkInput').value.trim() || "未知發現";
         const amount = parseFloat(document.getElementById('amountInput').value);
@@ -205,11 +233,57 @@
         if (!amount || amount <= 0) return alert("金額不正確！");
         const twd_amount = amount * exchangeRates[currency];
 
-        db.ref(`trips/${tripId}/entries`).push({
+        const entryData = {
             name: payer, remark, amount, currency, twd_amount, beneficiaries,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (editModeId) {
+            // 執行更新
+            db.ref(`trips/${tripId}/entries/${editModeId}`).update(entryData);
+            writeLog(`修改了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
+            resetForm();
+        } else {
+            // 執行新增
+            db.ref(`trips/${tripId}/entries`).push(entryData);
+            writeLog(`新增了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
+            resetForm();
+        }
+    }
+
+    // 啟動編輯模式
+    function startEdit(id, dataJson) {
+        const data = JSON.parse(decodeURIComponent(dataJson));
+        editModeId = id;
+        
+        // 填入資料
+        document.getElementById('personSelect').value = data.name;
+        document.getElementById('remarkInput').value = data.remark;
+        document.getElementById('amountInput').value = data.amount;
+        document.getElementById('currencyInput').value = data.currency;
+        
+        // 重設標籤
+        document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
+            const isChecked = data.beneficiaries.includes(el.value);
+            el.checked = isChecked;
+            document.getElementById(`label-${el.value}`).classList.toggle('active', isChecked);
         });
 
+        // UI 變換
+        document.getElementById('formTitle').innerText = "✍️ 修改冒險發現";
+        document.getElementById('submitBtn').innerText = "更新紀錄";
+        document.getElementById('submitBtn').classList.add('btn-update');
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        
+        window.scrollTo({ top: document.getElementById('inputSection').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+        editModeId = null;
+        document.getElementById('formTitle').innerText = "🗺️ 新增冒險發現";
+        document.getElementById('submitBtn').innerText = "＋ 紀錄發現";
+        document.getElementById('submitBtn').classList.remove('btn-update');
+        document.getElementById('cancelEditBtn').classList.add('hidden');
         document.getElementById('amountInput').value = "";
         document.getElementById('remarkInput').value = "";
         document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
@@ -218,34 +292,56 @@
         });
     }
 
-    // 渲染清單（包含刪除功能）
+    function deleteEntry(id, remark) {
+        if (confirm(`確定要抹除「${remark}」這段紀錄嗎？`)) {
+            db.ref(`trips/${tripId}/entries/${id}`).remove();
+            writeLog(`刪除了紀錄：「${remark}」`);
+        }
+    }
+
+    // 寫入履歷紀錄
+    function writeLog(msg) {
+        db.ref(`trips/${tripId}/logs`).push({
+            msg: msg,
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
     function renderEntries(entriesObj) {
         const container = document.getElementById('entryList');
         if (!entriesObj) { container.innerHTML = "日誌目前是空白的 👣"; return; }
 
-        // 使用 Object.entries 同時取得 Key (ID) 與 Value (資料)
         const entriesArray = Object.entries(entriesObj);
-
-        container.innerHTML = entriesArray.map(([id, e]) => `
+        container.innerHTML = entriesArray.map(([id, e]) => {
+            const dataJson = encodeURIComponent(JSON.stringify(e));
+            return `
             <div class="entry-item">
                 <div style="flex: 1">
                     <span class="remark-tag">${e.remark}</span><br>
-                    <small style="color:var(--text-light)">${e.name} 支付了 ${e.amount} ${e.currency}</small><br>
+                    <small style="color:var(--text-light)">${e.name} 墊付 ${e.amount} ${e.currency}</small><br>
                     <span class="beneficiary-tag">👤 分攤: ${e.beneficiaries.length === members.length ? '全員' : e.beneficiaries.join(', ')}</span>
                 </div>
-                <div style="text-align: right">
+                <div>
                     <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()}</div>
-                    <button class="btn-delete" onclick="deleteEntry('${id}')">🗑️ 刪除</button>
+                    <div class="action-btns">
+                        <button class="btn-small btn-edit" onclick="startEdit('${id}', '${dataJson}')">✎ 編輯</button>
+                        <button class="btn-small btn-del" onclick="deleteEntry('${id}', '${e.remark}')">🗑️ 刪除</button>
+                    </div>
                 </div>
             </div>
-        `).reverse().join('');
+        `}).reverse().join('');
     }
 
-    // 刪除紀錄函數
-    function deleteEntry(id) {
-        if (confirm("冒險者，確定要抹除這段紀錄嗎？")) {
-            db.ref(`trips/${tripId}/entries/${id}`).remove();
-        }
+    function renderLogs(logsObj) {
+        const container = document.getElementById('logList');
+        if (!logsObj) { container.innerHTML = "尚未有變動紀錄..."; return; }
+        
+        const logs = Object.values(logsObj).reverse().slice(0, 20); // 只顯示最新20條
+        container.innerHTML = logs.map(l => {
+            const date = new Date(l.time);
+            const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+            return `<div class="log-item"><span class="log-time">[${timeStr}]</span> ${l.msg}</div>`;
+        }).join('');
     }
 
     async function calculate() {
