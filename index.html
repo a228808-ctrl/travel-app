@@ -58,7 +58,6 @@
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #01579b; }
         button:active { transform: translateY(2px); box-shadow: 0 0 0; }
 
-        /* 特殊按鈕 */
         .btn-calc { background: var(--adventure-green); box-shadow: 0 4px 0 #1b5e20; }
         .btn-update { background: var(--adventure-gold); box-shadow: 0 4px 0 #f57f17; color: #5d4037; }
         
@@ -68,7 +67,7 @@
         .btn-del:hover { color: var(--adventure-red); border-color: #ffcdd2; }
         .btn-edit:hover { color: var(--adventure-blue); border-color: #bbdefb; }
 
-        .rate-bar { background: #fff9c4; padding: 10px; border-radius: 12px; font-size: 13px; text-align: center; margin-bottom: 20px; color: #f57f17; border: 1px solid #fff176; font-weight: bold; }
+        .rate-bar { background: #fff9c4; padding: 10px; border-radius: 12px; font-size: 12px; text-align: center; margin-bottom: 20px; color: #f57f17; border: 1px solid #fff176; font-weight: bold; line-height: 1.5; }
 
         .entry-item { 
             background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px;
@@ -85,7 +84,6 @@
         .checkbox-item.active { background: var(--adventure-green); color: white; border-color: var(--adventure-green); }
         .checkbox-item input { display: none; }
 
-        /* 履歷日誌樣式 */
         .log-container { max-height: 200px; overflow-y: auto; font-size: 12px; color: var(--text-light); background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px inset #eee; }
         .log-item { padding: 5px 0; border-bottom: 1px dashed #ddd; line-height: 1.4; }
         .log-time { color: #b0bec5; margin-right: 5px; }
@@ -121,9 +119,12 @@
             <input type="text" id="remarkInput" placeholder="例如：拉麵、纜車票">
             <div style="display:flex; gap:10px;">
                 <input type="number" id="amountInput" placeholder="金額" style="flex:2">
-                <select id="currencyInput" style="flex:1">
-                    <option value="TWD">TWD</option>
-                    <option value="JPY">JPY</option>
+                <select id="currencyInput" style="flex:1.5">
+                    <option value="TWD">TWD 台幣</option>
+                    <option value="JPY">JPY 日幣</option>
+                    <option value="USD">USD 美金</option>
+                    <option value="EUR">EUR 歐元</option>
+                    <option value="CHF">CHF 瑞郎</option>
                 </select>
             </div>
             <div class="beneficiary-box">
@@ -158,7 +159,7 @@
 </div>
 
 <script>
-    // --- Firebase 配置 (請保持你的配置) ---
+    // --- Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyDeiGsT67EBlGCHAFmznJHGT28gsc_WU1g",
         authDomain: "grandpasplit.firebaseapp.com",
@@ -174,8 +175,9 @@
 
     let tripId = new URLSearchParams(window.location.search).get('tripId');
     let members = [];
-    let exchangeRates = { JPY: 0.21, TWD: 1 };
-    let editModeId = null; // 用來追蹤目前是否在編輯模式
+    // 預設匯率 (避免 API 失效時有基準值)
+    let exchangeRates = { JPY: 0.21, TWD: 1, USD: 32.5, EUR: 35.2, CHF: 36.1 };
+    let editModeId = null;
 
     if (tripId) startRealtimeSync();
 
@@ -194,14 +196,12 @@
         document.getElementById('mainPage').classList.remove('hidden');
         document.getElementById('currentLink').innerText = window.location.href;
 
-        // 監聽主資料
         db.ref(`trips/${tripId}`).on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
             members = data.members;
             document.getElementById('displayTripName').innerText = "🏔️ " + data.name;
             
-            // 初始化選單與標籤 (僅在第一次或成員變動時)
             const pSelect = document.getElementById('personSelect');
             if(pSelect.options.length === 0) {
                 pSelect.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -221,7 +221,6 @@
         document.getElementById(`label-${name}`).classList.toggle('active', cb.checked);
     }
 
-    // 新增或更新資料的核心邏輯
     function handleEntrySubmit() {
         const payer = document.getElementById('personSelect').value;
         const remark = document.getElementById('remarkInput').value.trim() || "未知發現";
@@ -239,42 +238,32 @@
         };
 
         if (editModeId) {
-            // 執行更新
             db.ref(`trips/${tripId}/entries/${editModeId}`).update(entryData);
             writeLog(`修改了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
             resetForm();
         } else {
-            // 執行新增
             db.ref(`trips/${tripId}/entries`).push(entryData);
             writeLog(`新增了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
             resetForm();
         }
     }
 
-    // 啟動編輯模式
     function startEdit(id, dataJson) {
         const data = JSON.parse(decodeURIComponent(dataJson));
         editModeId = id;
-        
-        // 填入資料
         document.getElementById('personSelect').value = data.name;
         document.getElementById('remarkInput').value = data.remark;
         document.getElementById('amountInput').value = data.amount;
         document.getElementById('currencyInput').value = data.currency;
-        
-        // 重設標籤
         document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
             const isChecked = data.beneficiaries.includes(el.value);
             el.checked = isChecked;
             document.getElementById(`label-${el.value}`).classList.toggle('active', isChecked);
         });
-
-        // UI 變換
         document.getElementById('formTitle').innerText = "✍️ 修改冒險發現";
         document.getElementById('submitBtn').innerText = "更新紀錄";
         document.getElementById('submitBtn').classList.add('btn-update');
         document.getElementById('cancelEditBtn').classList.remove('hidden');
-        
         window.scrollTo({ top: document.getElementById('inputSection').offsetTop - 20, behavior: 'smooth' });
     }
 
@@ -299,7 +288,6 @@
         }
     }
 
-    // 寫入履歷紀錄
     function writeLog(msg) {
         db.ref(`trips/${tripId}/logs`).push({
             msg: msg,
@@ -310,7 +298,6 @@
     function renderEntries(entriesObj) {
         const container = document.getElementById('entryList');
         if (!entriesObj) { container.innerHTML = "日誌目前是空白的 👣"; return; }
-
         const entriesArray = Object.entries(entriesObj);
         container.innerHTML = entriesArray.map(([id, e]) => {
             const dataJson = encodeURIComponent(JSON.stringify(e));
@@ -335,8 +322,7 @@
     function renderLogs(logsObj) {
         const container = document.getElementById('logList');
         if (!logsObj) { container.innerHTML = "尚未有變動紀錄..."; return; }
-        
-        const logs = Object.values(logsObj).reverse().slice(0, 20); // 只顯示最新20條
+        const logs = Object.values(logsObj).reverse().slice(0, 20);
         container.innerHTML = logs.map(l => {
             const date = new Date(l.time);
             const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
@@ -384,7 +370,6 @@
             if (debtors[i].amount < 1) i++;
             if (creditors[j].amount < 1) j++;
         }
-
         document.getElementById('summaryArea').innerHTML = `🗺️ 冒險結餘報告已產出`;
         document.getElementById('resultCard').classList.remove('hidden');
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -394,10 +379,18 @@
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/TWD');
             const data = await res.json();
+            // API 返回的是 1 TWD 等於多少外幣，所以要用 1 / rate 算出 1 外幣等於多少台幣
             exchangeRates.JPY = 1 / data.rates.JPY;
-            document.getElementById('rateDisplay').innerText = `🧭 指南針匯率: 1 JPY ≈ ${exchangeRates.JPY.toFixed(4)} TWD`;
+            exchangeRates.USD = 1 / data.rates.USD;
+            exchangeRates.EUR = 1 / data.rates.EUR;
+            exchangeRates.CHF = 1 / data.rates.CHF;
+
+            document.getElementById('rateDisplay').innerHTML = `
+                🧭 指南針校準完成 (TWD 基準):<br>
+                1 JPY ≈ ${exchangeRates.JPY.toFixed(2)} | 1 USD ≈ ${exchangeRates.USD.toFixed(2)} | 1 EUR ≈ ${exchangeRates.EUR.toFixed(2)} | 1 CHF ≈ ${exchangeRates.CHF.toFixed(2)}
+            `;
         } catch (e) {
-            document.getElementById('rateDisplay').innerText = "使用預估匯率 (0.21)";
+            document.getElementById('rateDisplay').innerText = "無法取得即時匯率，使用預設值。";
         }
     }
 </script>
