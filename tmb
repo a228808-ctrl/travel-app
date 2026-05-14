@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冒險分帳 Pro 🧭 Adventure Split</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { 
+            --adventure-green: #2e7d32; 
+            --adventure-blue: #0288d1; 
+            --adventure-gold: #fbc02d;
+            --adventure-red: #d32f2f;
+            --bg-light: #f0f4f8; 
+            --card-bg: #ffffff;
+            --text-main: #37474f;
+            --text-light: #78909c;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; 
+            background: var(--bg-light); 
+            background-image: radial-gradient(#d1d9e6 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-main);
+            margin: 0; padding: 15px; 
+            display: flex; justify-content: center; 
+            min-height: 100vh;
+        }
+
+        .container { max-width: 500px; width: 100%; }
+        
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; border-radius: 20px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px; border-bottom: 4px solid #e0e0e0;
+            position: relative;
+        }
+
+        .hidden { display: none; }
+        
+        h1, h2, h3 { text-align: center; color: var(--adventure-green); margin-top: 0; }
+
+        label { font-weight: bold; font-size: 14px; color: var(--adventure-green); display: block; margin-top: 15px; margin-bottom: 5px; }
+
+        input, select, button { 
+            width: 100%; padding: 12px; margin-top: 8px; border-radius: 12px; border: 2px solid #e1e8ed; 
+            box-sizing: border-box; font-size: 16px; background: #fafafa; color: var(--text-main); transition: 0.3s;
+        }
+
+        input:focus { outline: none; border-color: var(--adventure-blue); background: #fff; }
+
+        button { background: var(--adventure-blue); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 0 #01579b; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #01579b; }
+        button:active { transform: translateY(2px); box-shadow: 0 0 0; }
+
+        .btn-calc { background: var(--adventure-green); box-shadow: 0 4px 0 #1b5e20; }
+        .btn-update { background: var(--adventure-gold); box-shadow: 0 4px 0 #f57f17; color: #5d4037; }
+        
+        .action-btns { display: flex; gap: 5px; margin-top: 5px; justify-content: flex-end; }
+        .btn-small { width: auto; padding: 4px 8px; font-size: 11px; margin-top: 0; box-shadow: none; border: 1px solid #ddd; background: white; color: var(--text-light); }
+        .btn-small:hover { background: #eee; transform: none; box-shadow: none; }
+        .btn-del:hover { color: var(--adventure-red); border-color: #ffcdd2; }
+        .btn-edit:hover { color: var(--adventure-blue); border-color: #bbdefb; }
+
+        .rate-bar { background: #fff9c4; padding: 10px; border-radius: 12px; font-size: 12px; text-align: center; margin-bottom: 20px; color: #f57f17; border: 1px solid #fff176; font-weight: bold; line-height: 1.5; }
+
+        .entry-item { 
+            background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #eee;
+        }
+        
+        .remark-tag { color: var(--text-main); font-weight: bold; }
+        .beneficiary-tag { font-size: 11px; color: var(--adventure-blue); background: #e1f5fe; padding: 2px 8px; border-radius: 6px; margin-top: 5px; display: inline-block; }
+        .twd-text { font-weight: 900; color: var(--adventure-green); font-size: 18px; text-align: right; }
+
+        .beneficiary-box { margin-top: 15px; background: #f1f8e9; padding: 15px; border-radius: 15px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 25px; font-size: 14px; cursor: pointer; border: 2px solid #e0e0e0; color: var(--text-light); }
+        .checkbox-item.active { background: var(--adventure-green); color: white; border-color: var(--adventure-green); }
+        .checkbox-item input { display: none; }
+
+        .log-container { max-height: 200px; overflow-y: auto; font-size: 12px; color: var(--text-light); background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px inset #eee; }
+        .log-item { padding: 5px 0; border-bottom: 1px dashed #ddd; line-height: 1.4; }
+        .log-time { color: #b0bec5; margin-right: 5px; }
+
+        .share-link { background: white; padding: 12px; border-radius: 12px; font-size: 12px; word-break: break-all; margin-bottom: 20px; text-align: center; border: 2px dashed var(--adventure-blue); color: var(--adventure-blue); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 頁面 1: 建立 -->
+    <div id="setupPage" class="card">
+        <h1>🧭 啟程新冒險</h1>
+        <label>目的地</label>
+        <input type="text" id="tripNameInput" placeholder="例如：2024 北海道雪祭">
+        <label>冒險成員 (用逗號分開)</label>
+        <input type="text" id="membersInput" placeholder="小智, 小剛, 小霞">
+        <button onclick="createNewTrip()">開啟冒險日誌 🎒</button>
+    </div>
+
+    <!-- 頁面 2: 主介面 -->
+    <div id="mainPage" class="hidden">
+        <h2 id="displayTripName">📍 載入中...</h2>
+        <div class="share-link">🌍 冒險隊號：<br><strong id="currentLink"></strong></div>
+        <div id="rateDisplay" class="rate-bar">🧭 指南針校準中...</div>
+
+        <!-- 輸入區 -->
+        <div class="card" id="inputSection">
+            <h3 id="formTitle">🗺️ 新增冒險發現</h3>
+            <label>💰 誰先墊錢？</label>
+            <select id="personSelect"></select>
+            <label>🔎 項目內容</label>
+            <input type="text" id="remarkInput" placeholder="例如：拉麵、纜車票">
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="amountInput" placeholder="金額" style="flex:2">
+                <select id="currencyInput" style="flex:1.5">
+                    <option value="TWD">TWD 台幣</option>
+                    <option value="JPY">JPY 日幣</option>
+                    <option value="USD">USD 美金</option>
+                    <option value="EUR">EUR 歐元</option>
+                    <option value="CHF">CHF 瑞郎</option>
+                </select>
+            </div>
+            <div class="beneficiary-box">
+                <label>👥 分攤成員</label>
+                <div id="beneficiaryList" class="checkbox-group"></div>
+            </div>
+            <button id="submitBtn" onclick="handleEntrySubmit()">＋ 紀錄發現</button>
+            <button id="cancelEditBtn" class="hidden" onclick="resetForm()" style="background:#eee; color:#666; box-shadow:none; margin-top:10px;">取消修改</button>
+        </div>
+
+        <!-- 歷史紀錄 (Logs) -->
+        <div class="card">
+            <h3>📜 冒險足跡 (履歷)</h3>
+            <div id="logList" class="log-container">尚未有變動紀錄...</div>
+        </div>
+
+        <!-- 明細列表 -->
+        <div class="card">
+            <h3>📝 冒險清單</h3>
+            <div id="entryList">尚無紀錄...👣</div>
+            <button class="btn-calc" onclick="calculate()">🏔️ 生成寶藏分配圖</button>
+        </div>
+
+        <!-- 結算結果 -->
+        <div id="resultCard" class="card hidden">
+            <h3>🏁 最終分帳建議</h3>
+            <div id="summaryArea" style="text-align:center; margin-bottom:15px; font-weight:bold;"></div>
+            <div id="resultList"></div>
+            <button onclick="location.href=location.pathname" style="background:#b0bec5; box-shadow: 0 4px 0 #78909c;">回到原點</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Firebase 配置 ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDeiGsT67EBlGCHAFmznJHGT28gsc_WU1g",
+        authDomain: "grandpasplit.firebaseapp.com",
+        databaseURL: "https://grandpasplit-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "grandpasplitD",
+        storageBucket: "grandpasplit.firebasestorage.app",
+        messagingSenderId: "388673972284",
+        appId: "1:388673972284:web:dad6dbe7f93a46b6d8bb39"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let tripId = new URLSearchParams(window.location.search).get('tripId');
+    let members = [];
+    // 預設匯率 (避免 API 失效時有基準值)
+    let exchangeRates = { JPY: 0.21, TWD: 1, USD: 32.5, EUR: 35.2, CHF: 36.1 };
+    let editModeId = null;
+
+    if (tripId) startRealtimeSync();
+
+    function createNewTrip() {
+        const name = document.getElementById('tripNameInput').value.trim();
+        const membersStr = document.getElementById('membersInput').value.trim();
+        if (!name || !membersStr) return alert("冒險者，請填寫旅程名稱與成員！");
+        const memberList = membersStr.split(',').map(s => s.trim()).filter(s => s);
+        const newTripRef = db.ref('trips').push();
+        newTripRef.set({ name: name, members: memberList, createdAt: firebase.database.ServerValue.TIMESTAMP })
+        .then(() => { window.location.search = `?tripId=${newTripRef.key}`; });
+    }
+
+    function startRealtimeSync() {
+        document.getElementById('setupPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+        document.getElementById('currentLink').innerText = window.location.href;
+
+        db.ref(`trips/${tripId}`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            members = data.members;
+            document.getElementById('displayTripName').innerText = "🏔️ " + data.name;
+            
+            const pSelect = document.getElementById('personSelect');
+            if(pSelect.options.length === 0) {
+                pSelect.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
+                document.getElementById('beneficiaryList').innerHTML = members.map(m => `
+                    <label class="checkbox-item" id="label-${m}">
+                        <input type="checkbox" name="beneficiary" value="${m}" onchange="toggleTag(this, '${m}')"> ${m}
+                    </label>
+                `).join('');
+            }
+            renderEntries(data.entries);
+            renderLogs(data.logs);
+        });
+        fetchRates();
+    }
+
+    function toggleTag(cb, name) {
+        document.getElementById(`label-${name}`).classList.toggle('active', cb.checked);
+    }
+
+    function handleEntrySubmit() {
+        const payer = document.getElementById('personSelect').value;
+        const remark = document.getElementById('remarkInput').value.trim() || "未知發現";
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const currency = document.getElementById('currencyInput').value;
+        let beneficiaries = Array.from(document.querySelectorAll('input[name="beneficiary"]:checked')).map(el => el.value);
+        if (beneficiaries.length === 0) beneficiaries = [...members];
+
+        if (!amount || amount <= 0) return alert("金額不正確！");
+        const twd_amount = amount * exchangeRates[currency];
+
+        const entryData = {
+            name: payer, remark, amount, currency, twd_amount, beneficiaries,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (editModeId) {
+            db.ref(`trips/${tripId}/entries/${editModeId}`).update(entryData);
+            writeLog(`修改了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
+            resetForm();
+        } else {
+            db.ref(`trips/${tripId}/entries`).push(entryData);
+            writeLog(`新增了紀錄：「${remark}」(${payer} 墊付 ${amount} ${currency})`);
+            resetForm();
+        }
+    }
+
+    function startEdit(id, dataJson) {
+        const data = JSON.parse(decodeURIComponent(dataJson));
+        editModeId = id;
+        document.getElementById('personSelect').value = data.name;
+        document.getElementById('remarkInput').value = data.remark;
+        document.getElementById('amountInput').value = data.amount;
+        document.getElementById('currencyInput').value = data.currency;
+        document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
+            const isChecked = data.beneficiaries.includes(el.value);
+            el.checked = isChecked;
+            document.getElementById(`label-${el.value}`).classList.toggle('active', isChecked);
+        });
+        document.getElementById('formTitle').innerText = "✍️ 修改冒險發現";
+        document.getElementById('submitBtn').innerText = "更新紀錄";
+        document.getElementById('submitBtn').classList.add('btn-update');
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        window.scrollTo({ top: document.getElementById('inputSection').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+        editModeId = null;
+        document.getElementById('formTitle').innerText = "🗺️ 新增冒險發現";
+        document.getElementById('submitBtn').innerText = "＋ 紀錄發現";
+        document.getElementById('submitBtn').classList.remove('btn-update');
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        document.getElementById('amountInput').value = "";
+        document.getElementById('remarkInput').value = "";
+        document.querySelectorAll('input[name="beneficiary"]').forEach(el => {
+            el.checked = false;
+            document.getElementById(`label-${el.value}`).classList.remove('active');
+        });
+    }
+
+    function deleteEntry(id, remark) {
+        if (confirm(`確定要抹除「${remark}」這段紀錄嗎？`)) {
+            db.ref(`trips/${tripId}/entries/${id}`).remove();
+            writeLog(`刪除了紀錄：「${remark}」`);
+        }
+    }
+
+    function writeLog(msg) {
+        db.ref(`trips/${tripId}/logs`).push({
+            msg: msg,
+            time: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    function renderEntries(entriesObj) {
+        const container = document.getElementById('entryList');
+        if (!entriesObj) { container.innerHTML = "日誌目前是空白的 👣"; return; }
+        const entriesArray = Object.entries(entriesObj);
+        container.innerHTML = entriesArray.map(([id, e]) => {
+            const dataJson = encodeURIComponent(JSON.stringify(e));
+            return `
+            <div class="entry-item">
+                <div style="flex: 1">
+                    <span class="remark-tag">${e.remark}</span><br>
+                    <small style="color:var(--text-light)">${e.name} 墊付 ${e.amount} ${e.currency}</small><br>
+                    <span class="beneficiary-tag">👤 分攤: ${e.beneficiaries.length === members.length ? '全員' : e.beneficiaries.join(', ')}</span>
+                </div>
+                <div>
+                    <div class="twd-text">$${Math.round(e.twd_amount).toLocaleString()}</div>
+                    <div class="action-btns">
+                        <button class="btn-small btn-edit" onclick="startEdit('${id}', '${dataJson}')">✎ 編輯</button>
+                        <button class="btn-small btn-del" onclick="deleteEntry('${id}', '${e.remark}')">🗑️ 刪除</button>
+                    </div>
+                </div>
+            </div>
+        `}).reverse().join('');
+    }
+
+    function renderLogs(logsObj) {
+        const container = document.getElementById('logList');
+        if (!logsObj) { container.innerHTML = "尚未有變動紀錄..."; return; }
+        const logs = Object.values(logsObj).reverse().slice(0, 20);
+        container.innerHTML = logs.map(l => {
+            const date = new Date(l.time);
+            const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+            return `<div class="log-item"><span class="log-time">[${timeStr}]</span> ${l.msg}</div>`;
+        }).join('');
+    }
+
+    async function calculate() {
+        const snapshot = await db.ref(`trips/${tripId}/entries`).once('value');
+        const entriesObj = snapshot.val();
+        if (!entriesObj) return alert("沒有紀錄！");
+
+        const entries = Object.values(entriesObj);
+        let balances = {};
+        members.forEach(m => balances[m] = 0);
+
+        entries.forEach(e => {
+            const payer = e.name;
+            const amount = e.twd_amount;
+            const sharers = e.beneficiaries || members;
+            const shareAmount = amount / sharers.length;
+            balances[payer] += amount;
+            sharers.forEach(p => { balances[p] -= shareAmount; });
+        });
+
+        let creditors = [], debtors = [];
+        for (let name in balances) {
+            if (balances[name] > 0.5) creditors.push({ name, amount: balances[name] });
+            else if (balances[name] < -0.5) debtors.push({ name, amount: Math.abs(balances[name]) });
+        }
+
+        creditors.sort((a, b) => b.amount - a.amount);
+        debtors.sort((a, b) => b.amount - a.amount);
+
+        const resultList = document.getElementById('resultList');
+        resultList.innerHTML = '';
+
+        let i = 0, j = 0;
+        while (i < debtors.length && j < creditors.length) {
+            let pay = Math.min(debtors[i].amount, creditors[j].amount);
+            const div = document.createElement('div');
+            div.innerHTML = `⛺ <b>${debtors[i].name}</b> 應交付給 <b>${creditors[j].name}</b> <br><span style="color:var(--adventure-green); font-size: 20px;">$${Math.round(pay).toLocaleString()}</span> TWD`;
+            resultList.appendChild(div);
+            debtors[i].amount -= pay; creditors[j].amount -= pay;
+            if (debtors[i].amount < 1) i++;
+            if (creditors[j].amount < 1) j++;
+        }
+        document.getElementById('summaryArea').innerHTML = `🗺️ 冒險結餘報告已產出`;
+        document.getElementById('resultCard').classList.remove('hidden');
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function fetchRates() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/TWD');
+            const data = await res.json();
+            // API 返回的是 1 TWD 等於多少外幣，所以要用 1 / rate 算出 1 外幣等於多少台幣
+            exchangeRates.JPY = 1 / data.rates.JPY;
+            exchangeRates.USD = 1 / data.rates.USD;
+            exchangeRates.EUR = 1 / data.rates.EUR;
+            exchangeRates.CHF = 1 / data.rates.CHF;
+
+            document.getElementById('rateDisplay').innerHTML = `
+                🧭 指南針校準完成 (TWD 基準):<br>
+                1 JPY ≈ ${exchangeRates.JPY.toFixed(2)} | 1 USD ≈ ${exchangeRates.USD.toFixed(2)} | 1 EUR ≈ ${exchangeRates.EUR.toFixed(2)} | 1 CHF ≈ ${exchangeRates.CHF.toFixed(2)}
+            `;
+        } catch (e) {
+            document.getElementById('rateDisplay').innerText = "無法取得即時匯率，使用預設值。";
+        }
+    }
+</script>
+
+</body>
+</html>
